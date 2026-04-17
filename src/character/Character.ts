@@ -58,38 +58,45 @@ export class Character {
   }
 
   private build() {
-    // ── Joint positions (x, y) for a ~2.5-unit tall figure ──────────────
+    // ── Joint positions (x, y) ───────────────────────────────────────────
     //
-    //  HEAD_CTR  (0, 2.25)
-    //  NECK_T    (0, 2.00)   NECK_B   (0, 1.85)
-    //  TORSO_B   (0, 1.35)
-    //  SHLDR_L  (-0.38, 1.80)   SHLDR_R  (0.38, 1.80)
-    //  ELBOW_L  (-0.62, 1.42)   ELBOW_R  (0.62, 1.42)
-    //  WRIST_L  (-0.72, 1.00)   WRIST_R  (0.72, 1.00)
-    //  HIP_L    (-0.22, 1.35)   HIP_R    (0.22, 1.35)
+    //  HEAD_CTR  (0, 2.55)
+    //  NECK_T    (0, 2.30)   NECK_B   (0, 2.15)
+    //  TORSO_T   (0, 2.15)   TORSO_B  (0, 1.35)   ← long torso, 0.80 units
+    //  SHLDR_L  (-0.52, 2.08)   SHLDR_R  (0.52, 2.08)  ← broad shoulders
+    //  ELBOW_L  (-0.74, 1.62)   ELBOW_R  (0.74, 1.62)
+    //  WRIST_L  (-0.84, 1.15)   WRIST_R  (0.84, 1.15)
+    //  PELVIS_B  (0, 1.18)   ← wide frustum bridging torso→legs
+    //  HIP_L    (-0.20, 1.18)   HIP_R    (0.20, 1.18)
     //  KNEE_L   (-0.24, 0.72)   KNEE_R   (0.24, 0.72)
     //  ANKLE_L  (-0.22, 0.05)   ANKLE_R  (0.22, 0.05)
 
-    // Head — icosahedron detail 0: 20 faces, clean low-poly sphere
-    this.addPart(new THREE.IcosahedronGeometry(0.25, 0), 0, 2.25, 0);
+    // Head — unit icosahedron scaled to an egg: taller than wide, slightly flat front-to-back.
+    // Bottom of head (2.58 - 0.28 = 2.30) sits flush with neck top.
+    const headGeo = new THREE.IcosahedronGeometry(1, 0);
+    headGeo.scale(0.22, 0.28, 0.20);
+    this.addPart(headGeo, 0, 2.58, 0);
 
     // Neck
-    this.addSegment(0, 2.00,  0, 1.85,  0.09, 0.07, 3);
+    this.addSegment(0, 2.30,  0, 2.15,  0.09, 0.07, 3);
 
-    // Torso
-    this.addSegment(0, 1.85,  0, 1.35,  0.22, 0.17, 4);
+    // Torso — wide at shoulders, narrow at hips: strong inverted-triangle silhouette
+    this.addSegment(0, 2.15,  0, 1.35,  0.44, 0.14, 4);
 
     // Upper arms: shoulder → elbow
-    this.addSegment(-0.38, 1.80, -0.62, 1.42,  0.068, 0.054, 3);
-    this.addSegment( 0.38, 1.80,  0.62, 1.42,  0.068, 0.054, 3);
+    this.addSegment(-0.52, 2.08, -0.74, 1.62,  0.072, 0.056, 3);
+    this.addSegment( 0.52, 2.08,  0.74, 1.62,  0.072, 0.056, 3);
 
     // Lower arms: elbow → wrist
-    this.addSegment(-0.62, 1.42, -0.72, 1.00,  0.052, 0.038, 3);
-    this.addSegment( 0.62, 1.42,  0.72, 1.00,  0.052, 0.038, 3);
+    this.addSegment(-0.74, 1.62, -0.84, 1.15,  0.054, 0.038, 3);
+    this.addSegment( 0.74, 1.62,  0.84, 1.15,  0.054, 0.038, 3);
+
+    // Pelvis — wider than the leg outer edges (~0.31) so hips read as the widest point below the waist
+    this.addSegment(0, 1.35,  0, 1.18,  0.36, 0.14, 4);
 
     // Upper legs: hip → knee
-    this.addSegment(-0.22, 1.35, -0.24, 0.72,  0.105, 0.088, 4);
-    this.addSegment( 0.22, 1.35,  0.24, 0.72,  0.105, 0.088, 4);
+    this.addSegment(-0.22, 1.18, -0.24, 0.72,  0.105, 0.088, 4);
+    this.addSegment( 0.22, 1.18,  0.24, 0.72,  0.105, 0.088, 4);
 
     // Lower legs: knee → ankle
     this.addSegment(-0.24, 0.72, -0.22, 0.05,  0.080, 0.058, 3);
