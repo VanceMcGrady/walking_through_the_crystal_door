@@ -57,50 +57,67 @@ export class Character {
     );
   }
 
-  private build() {
-    // ── Joint positions (x, y) ───────────────────────────────────────────
-    //
-    //  HEAD_CTR  (0, 2.55)
-    //  NECK_T    (0, 2.30)   NECK_B   (0, 2.15)
-    //  TORSO_T   (0, 2.15)   TORSO_B  (0, 1.35)   ← long torso, 0.80 units
-    //  SHLDR_L  (-0.52, 2.08)   SHLDR_R  (0.52, 2.08)  ← broad shoulders
-    //  ELBOW_L  (-0.74, 1.62)   ELBOW_R  (0.74, 1.62)
-    //  WRIST_L  (-0.84, 1.15)   WRIST_R  (0.84, 1.15)
-    //  PELVIS_B  (0, 1.18)   ← wide frustum bridging torso→legs
-    //  HIP_L    (-0.20, 1.18)   HIP_R    (0.20, 1.18)
-    //  KNEE_L   (-0.24, 0.72)   KNEE_R   (0.24, 0.72)
-    //  ANKLE_L  (-0.22, 0.05)   ANKLE_R  (0.22, 0.05)
+  // Small icosahedron sphere for mechanical ball joints (shoulders, elbows, knees)
+  private addJoint(x: number, y: number, radius: number) {
+    this.addPart(new THREE.IcosahedronGeometry(radius, 0), x, y, 0);
+  }
 
-    // Head — unit icosahedron scaled to an egg: taller than wide, slightly flat front-to-back.
-    // Bottom of head (2.58 - 0.28 = 2.30) sits flush with neck top.
+  private build() {
+    // ── Joint positions — proportioned from character_inspo.jpg ─────────
+    //
+    //  HEAD_CTR  (0, 2.66)   small head, ~1/7 total height
+    //  NECK_T    (0, 2.40)   NECK_B   (0, 2.25)
+    //  TORSO_T   (0, 2.25)   TORSO_B  (0, 1.50)   strong V-shape
+    //  SHLDR_L  (-0.52, 2.18)   SHLDR_R  (0.52, 2.18)  ball joints
+    //  ELBOW_L  (-0.62, 1.70)   ELBOW_R  (0.62, 1.70)  ball joints
+    //  WRIST_L  (-0.66, 1.28)   WRIST_R  (0.66, 1.28)
+    //  PELVIS_T  (0, 1.50)   PELVIS_B (0, 1.28)
+    //  HIP_L    (-0.22, 1.28)   HIP_R    (0.22, 1.28)
+    //  KNEE_L   (-0.24, 0.58)   KNEE_R   (0.24, 0.58)  ball joints
+    //  ANKLE_L  (-0.22, 0.05)   ANKLE_R  (0.22, 0.05)
+    //  thigh 0.70, shin 0.53  — thighs clearly longer, per reference
+
+    // Head — egg-shaped (bottom flush with neck top at 2.40)
     const headGeo = new THREE.IcosahedronGeometry(1, 0);
-    headGeo.scale(0.22, 0.28, 0.20);
-    this.addPart(headGeo, 0, 2.58, 0);
+    headGeo.scale(0.20, 0.26, 0.18);
+    this.addPart(headGeo, 0, 2.66, 0);
 
     // Neck
-    this.addSegment(0, 2.30,  0, 2.15,  0.09, 0.07, 3);
+    this.addSegment(0, 2.40,  0, 2.25,  0.08, 0.07, 3);
 
-    // Torso — wide at shoulders, narrow at hips: strong inverted-triangle silhouette
-    this.addSegment(0, 2.15,  0, 1.35,  0.44, 0.14, 4);
+    // Torso — dramatic V: broad chest, pinched waist
+    this.addSegment(0, 2.25,  0, 1.50,  0.44, 0.12, 4);
 
-    // Upper arms: shoulder → elbow
-    this.addSegment(-0.52, 2.08, -0.74, 1.62,  0.072, 0.056, 3);
-    this.addSegment( 0.52, 2.08,  0.74, 1.62,  0.072, 0.056, 3);
+    // Shoulder ball joints
+    this.addJoint(-0.52, 2.18, 0.09);
+    this.addJoint( 0.52, 2.18, 0.09);
 
-    // Lower arms: elbow → wrist
-    this.addSegment(-0.74, 1.62, -0.84, 1.15,  0.054, 0.038, 3);
-    this.addSegment( 0.74, 1.62,  0.84, 1.15,  0.054, 0.038, 3);
+    // Upper arms — close to body, slight outward drop
+    this.addSegment(-0.52, 2.18, -0.62, 1.70,  0.068, 0.055, 3);
+    this.addSegment( 0.52, 2.18,  0.62, 1.70,  0.068, 0.055, 3);
 
-    // Pelvis — wider than the leg outer edges (~0.31) so hips read as the widest point below the waist
-    this.addSegment(0, 1.35,  0, 1.18,  0.36, 0.14, 4);
+    // Elbow ball joints
+    this.addJoint(-0.62, 1.70, 0.07);
+    this.addJoint( 0.62, 1.70, 0.07);
 
-    // Upper legs: hip → knee
-    this.addSegment(-0.22, 1.18, -0.24, 0.72,  0.105, 0.088, 4);
-    this.addSegment( 0.22, 1.18,  0.24, 0.72,  0.105, 0.088, 4);
+    // Lower arms
+    this.addSegment(-0.62, 1.70, -0.66, 1.28,  0.054, 0.038, 3);
+    this.addSegment( 0.62, 1.70,  0.66, 1.28,  0.054, 0.038, 3);
 
-    // Lower legs: knee → ankle
-    this.addSegment(-0.24, 0.72, -0.22, 0.05,  0.080, 0.058, 3);
-    this.addSegment( 0.24, 0.72,  0.22, 0.05,  0.080, 0.058, 3);
+    // Pelvis — shield-shaped frustum, wider than legs
+    this.addSegment(0, 1.50,  0, 1.28,  0.36, 0.12, 4);
+
+    // Upper legs — thighs noticeably longer than shins (0.70 vs 0.53)
+    this.addSegment(-0.22, 1.28, -0.24, 0.58,  0.105, 0.090, 4);
+    this.addSegment( 0.22, 1.28,  0.24, 0.58,  0.105, 0.090, 4);
+
+    // Knee ball joints
+    this.addJoint(-0.24, 0.58, 0.08);
+    this.addJoint( 0.24, 0.58, 0.08);
+
+    // Lower legs — shins
+    this.addSegment(-0.24, 0.58, -0.22, 0.05,  0.082, 0.060, 3);
+    this.addSegment( 0.24, 0.58,  0.22, 0.05,  0.082, 0.060, 3);
   }
 
   move(dx: number, dz: number, dt: number) {
