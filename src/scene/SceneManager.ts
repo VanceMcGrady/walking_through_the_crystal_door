@@ -15,7 +15,7 @@ export class SceneManager {
   constructor() {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(BG_COLOR);
-    this.scene.fog = new THREE.Fog(BG_COLOR, 60, 200);
+    this.scene.fog = new THREE.Fog(BG_COLOR, 95, 280);
 
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
     this.camera.position.copy(CAMERA_OFFSET);
@@ -32,28 +32,14 @@ export class SceneManager {
   }
 
   private addGround() {
-    // Solid base so the fog color bleeds through naturally
+    // Large solid base — ensures no sky-colour gaps beyond the terrain mesh
     const base = new THREE.Mesh(
-      new THREE.PlaneGeometry(600, 600),
+      new THREE.PlaneGeometry(2000, 2000),
       new THREE.MeshBasicMaterial({ color: BG_COLOR })
     );
     base.rotation.x = -Math.PI / 2;
-    base.position.y = -0.01;
+    base.position.y = -0.02;
     this.scene.add(base);
-
-    // Triangulated wireframe grid — matches the low-poly mesh language in the references
-    const geo = new THREE.PlaneGeometry(300, 300, 60, 60);
-    geo.rotateX(-Math.PI / 2);
-
-    const wireframe = new THREE.LineSegments(
-      new THREE.WireframeGeometry(geo),
-      new THREE.LineBasicMaterial({
-        color: GROUND_LINE_COLOR,
-        transparent: true,
-        opacity: 0.55,
-      })
-    );
-    this.scene.add(wireframe);
   }
 
   private readonly _lookAt = new THREE.Vector3();
