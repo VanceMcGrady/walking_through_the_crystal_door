@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
 const SPEED = 5;
-const LINE_COLOR = 0x18142a;   // very dark navy — warm, not pure black
-const FILL_OPACITY = 0.07;     // ghost-gray triangle fill, like the iStock runner reference
+const LINE_COLOR = 0x18142a;
+const FILL_OPACITY = 0.07;
 
 export class Character {
   readonly object: THREE.Group;
@@ -12,66 +12,88 @@ export class Character {
     this.build();
   }
 
-  // Adds a low-poly body part: ghost fill + edge wireframe + vertex dots
   private addPart(
     geo: THREE.BufferGeometry,
     x: number, y: number, z: number,
     rx = 0, rz = 0
   ) {
-    const transform = (obj: THREE.Object3D) => {
+    for (const obj of [
+      new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+        color: LINE_COLOR, transparent: true, opacity: FILL_OPACITY,
+        side: THREE.DoubleSide, depthWrite: false,
+      })),
+      new THREE.LineSegments(
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: LINE_COLOR })
+      ),
+      new THREE.Points(geo, new THREE.PointsMaterial({
+        color: LINE_COLOR, size: 0.07, sizeAttenuation: true,
+      })),
+    ]) {
       obj.position.set(x, y, z);
-      obj.rotation.x = rx;
-      obj.rotation.z = rz;
+      obj.rotation.set(rx, 0, rz);
       this.object.add(obj);
-    };
+    }
+  }
 
-    // Subtle filled faces — reads as a translucent solid
-    transform(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-      color: LINE_COLOR,
-      transparent: true,
-      opacity: FILL_OPACITY,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    })));
-
-    // Edge wireframe
-    transform(new THREE.LineSegments(
-      new THREE.EdgesGeometry(geo),
-      new THREE.LineBasicMaterial({ color: LINE_COLOR })
-    ));
-
-    // Vertex dots — the connective-tissue nodes from the reference
-    transform(new THREE.Points(geo, new THREE.PointsMaterial({
-      color: LINE_COLOR,
-      size: 0.06,
-      sizeAttenuation: true,
-    })));
+  // Places a cylinder whose ends land exactly on (x1,y1) and (x2,y2).
+  // rFat = radius at p1 end, rThin = radius at p2 end.
+  private addSegment(
+    x1: number, y1: number,
+    x2: number, y2: number,
+    rFat: number, rThin: number,
+    radialSegs: number
+  ) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    // atan2(-dx, dy) rotates the cylinder's +Y axis to point from p1 → p2
+    const rz = Math.atan2(-dx, dy);
+    // rFat maps to the bottom (p1 side), rThin to the top (p2 side)
+    this.addPart(
+      new THREE.CylinderGeometry(rThin, rFat, len, radialSegs, 1, true),
+      (x1 + x2) / 2, (y1 + y2) / 2, 0,
+      0, rz
+    );
   }
 
   private build() {
-    // Head — icosahedron gives the faceted polygon-mesh look
-    this.addPart(new THREE.IcosahedronGeometry(0.22, 1), 0, 1.85, 0);
+    // ── Joint positions (x, y) for a ~2.5-unit tall figure ──────────────
+    //
+    //  HEAD_CTR  (0, 2.25)
+    //  NECK_T    (0, 2.00)   NECK_B   (0, 1.85)
+    //  TORSO_B   (0, 1.35)
+    //  SHLDR_L  (-0.38, 1.80)   SHLDR_R  (0.38, 1.80)
+    //  ELBOW_L  (-0.62, 1.42)   ELBOW_R  (0.62, 1.42)
+    //  WRIST_L  (-0.72, 1.00)   WRIST_R  (0.72, 1.00)
+    //  HIP_L    (-0.22, 1.35)   HIP_R    (0.22, 1.35)
+    //  KNEE_L   (-0.24, 0.72)   KNEE_R   (0.24, 0.72)
+    //  ANKLE_L  (-0.22, 0.05)   ANKLE_R  (0.22, 0.05)
+
+    // Head — icosahedron detail 0: 20 faces, clean low-poly sphere
+    this.addPart(new THREE.IcosahedronGeometry(0.25, 0), 0, 2.25, 0);
 
     // Neck
-    this.addPart(new THREE.CylinderGeometry(0.07, 0.09, 0.18, 4), 0, 1.64, 0);
+    this.addSegment(0, 2.00,  0, 1.85,  0.09, 0.07, 3);
 
-    // Torso — 5-sided faceted column
-    this.addPart(new THREE.CylinderGeometry(0.22, 0.18, 0.60, 5), 0, 1.23, 0);
+    // Torso
+    this.addSegment(0, 1.85,  0, 1.35,  0.22, 0.17, 4);
 
-    // Hips
-    this.addPart(new THREE.CylinderGeometry(0.18, 0.14, 0.18, 5), 0, 0.89, 0);
+    // Upper arms: shoulder → elbow
+    this.addSegment(-0.38, 1.80, -0.62, 1.42,  0.068, 0.054, 3);
+    this.addSegment( 0.38, 1.80,  0.62, 1.42,  0.068, 0.054, 3);
 
-    // Arms — angled outward from shoulders
-    this.addPart(new THREE.CylinderGeometry(0.065, 0.050, 0.38, 4), -0.31, 1.30, 0, 0,  0.50);
-    this.addPart(new THREE.CylinderGeometry(0.065, 0.050, 0.38, 4),  0.31, 1.30, 0, 0, -0.50);
-    this.addPart(new THREE.CylinderGeometry(0.048, 0.038, 0.30, 4), -0.51, 1.01, 0, 0,  0.30);
-    this.addPart(new THREE.CylinderGeometry(0.048, 0.038, 0.30, 4),  0.51, 1.01, 0, 0, -0.30);
+    // Lower arms: elbow → wrist
+    this.addSegment(-0.62, 1.42, -0.72, 1.00,  0.052, 0.038, 3);
+    this.addSegment( 0.62, 1.42,  0.72, 1.00,  0.052, 0.038, 3);
 
-    // Legs
-    this.addPart(new THREE.CylinderGeometry(0.100, 0.085, 0.44, 4), -0.13, 0.56, 0);
-    this.addPart(new THREE.CylinderGeometry(0.100, 0.085, 0.44, 4),  0.13, 0.56, 0);
-    this.addPart(new THREE.CylinderGeometry(0.072, 0.055, 0.38, 4), -0.14, 0.20, 0);
-    this.addPart(new THREE.CylinderGeometry(0.072, 0.055, 0.38, 4),  0.14, 0.20, 0);
+    // Upper legs: hip → knee
+    this.addSegment(-0.22, 1.35, -0.24, 0.72,  0.105, 0.088, 4);
+    this.addSegment( 0.22, 1.35,  0.24, 0.72,  0.105, 0.088, 4);
+
+    // Lower legs: knee → ankle
+    this.addSegment(-0.24, 0.72, -0.22, 0.05,  0.080, 0.058, 3);
+    this.addSegment( 0.24, 0.72,  0.22, 0.05,  0.080, 0.058, 3);
   }
 
   move(dx: number, dz: number, dt: number) {
