@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 
-const SPEED         = 5;
+const SPEED         = 14;
 const LINE_COLOR    = 0x18142a;
 const FILL_OPACITY  = 0.07;
 
-const RUN_RATE      = 4.5;   // phase radians per second
-const HIP_SWING     = 0.55;  // max hip rotation (rad)
-const KNEE_BEND     = 0.65;  // max knee bend (rad) — bends shin back on forward leg
-const ARM_SWING     = 0.40;  // max shoulder rotation (rad)
-const BODY_BOB      = 0.04;  // vertical bob amplitude (units)
+const RUN_RATE      = 8.0;   // phase radians per second
+const HIP_SWING     = 1.05;  // max hip rotation (rad)
+const KNEE_BEND     = 1.55;  // max knee bend (rad) — bends shin back on forward leg
+const ARM_SWING     = 0.70;  // max shoulder rotation (rad)
+const BODY_BOB      = 0.09;  // vertical bob amplitude (units)
 
 export class Character {
   readonly object: THREE.Group;
@@ -149,9 +149,9 @@ export class Character {
     this.hipL.rotation.x  =  s * HIP_SWING;
     this.hipR.rotation.x  = -s * HIP_SWING;
 
-    // Knee bend — the FORWARD leg lifts its shin back (negative = shin trails)
-    this.kneeL.rotation.x = -Math.max(0,  s) * KNEE_BEND;
-    this.kneeR.rotation.x = -Math.max(0, -s) * KNEE_BEND;
+    // Knee bend — leading leg gets full lift, trailing leg keeps a 55% follow-through bend
+    this.kneeL.rotation.x = (Math.max(0,  s) + Math.max(0, -s) * 0.55) * KNEE_BEND;
+    this.kneeR.rotation.x = (Math.max(0, -s) + Math.max(0,  s) * 0.55) * KNEE_BEND;
 
     // Arm swing — contralateral (opposite to legs)
     this.shoulderL.rotation.x = -s * ARM_SWING;
