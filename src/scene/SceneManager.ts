@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 
 const CAMERA_OFFSET = new THREE.Vector3(0, 10, 8);
+const BG_COLOR = 0xf0ece0;
+const GROUND_LINE_COLOR = 0x9a8f82;
 
 export class SceneManager {
   readonly scene: THREE.Scene;
@@ -9,7 +11,8 @@ export class SceneManager {
 
   constructor() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xffffff);
+    this.scene.background = new THREE.Color(BG_COLOR);
+    this.scene.fog = new THREE.Fog(BG_COLOR, 40, 120);
 
     this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
     this.camera.position.copy(CAMERA_OFFSET);
@@ -26,15 +29,28 @@ export class SceneManager {
   }
 
   private addGround() {
-    const plane = new THREE.Mesh(
-      new THREE.PlaneGeometry(500, 500),
-      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    // Solid base so the fog color bleeds through naturally
+    const base = new THREE.Mesh(
+      new THREE.PlaneGeometry(600, 600),
+      new THREE.MeshBasicMaterial({ color: BG_COLOR })
     );
-    plane.rotation.x = -Math.PI / 2;
-    this.scene.add(plane);
+    base.rotation.x = -Math.PI / 2;
+    base.position.y = -0.01;
+    this.scene.add(base);
 
-    const grid = new THREE.GridHelper(500, 250, 0xdddddd, 0xeeeeee);
-    this.scene.add(grid);
+    // Triangulated wireframe grid — matches the low-poly mesh language in the references
+    const geo = new THREE.PlaneGeometry(300, 300, 60, 60);
+    geo.rotateX(-Math.PI / 2);
+
+    const wireframe = new THREE.LineSegments(
+      new THREE.WireframeGeometry(geo),
+      new THREE.LineBasicMaterial({
+        color: GROUND_LINE_COLOR,
+        transparent: true,
+        opacity: 0.55,
+      })
+    );
+    this.scene.add(wireframe);
   }
 
   followTarget(target: THREE.Vector3) {
