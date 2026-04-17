@@ -9,6 +9,7 @@ const background   = new Background(sceneManager.scene);
 const terrain      = new Terrain(sceneManager.scene);
 const character    = new Character();
 const input        = new InputManager();
+const coordsEl     = document.getElementById('coords')!;
 
 sceneManager.scene.add(character.object);
 
@@ -30,6 +31,8 @@ function loop() {
 
   sceneManager.followTarget(pos);
   sceneManager.render();
+
+  coordsEl.textContent = `x  ${pos.x.toFixed(1)}\ny  ${pos.y.toFixed(1)}\nz  ${pos.z.toFixed(1)}`;
 }
 
 loop();
