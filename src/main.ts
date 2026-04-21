@@ -3,6 +3,8 @@ import { Terrain } from './scene/Terrain';
 import { Background } from './scene/Background';
 import { Character } from './character/Character';
 import { InputManager } from './input/InputManager';
+import { SongClock } from './audio/SongClock';
+import { StartScreen } from './ui/StartScreen';
 
 const sceneManager = new SceneManager();
 const background   = new Background(sceneManager.scene);
@@ -10,17 +12,23 @@ const terrain      = new Terrain(sceneManager.scene);
 const character    = new Character();
 const input        = new InputManager();
 const coordsEl     = document.getElementById('coords')!;
+const songClock    = new SongClock();
 
 sceneManager.scene.add(character.object);
+
+new StartScreen(async () => {
+  await songClock.start();
+});
 
 let lastTime = performance.now();
 
 function loop() {
   requestAnimationFrame(loop);
 
-  const now = performance.now();
-  const dt  = Math.min((now - lastTime) / 1000, 0.1);
-  lastTime  = now;
+  const now      = performance.now();
+  const dt       = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime       = now;
+  const songTime = songClock.currentTime; // eslint-disable-line @typescript-eslint/no-unused-vars
 
   const { movement } = input.read();
   character.move(movement.x, movement.y, dt);
