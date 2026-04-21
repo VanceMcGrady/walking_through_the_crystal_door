@@ -2,18 +2,20 @@ import * as THREE from 'three';
 
 const SPEED         = 14;
 const LINE_COLOR    = 0x18142a;
-const FILL_OPACITY  = 0.07;
+const FILL_OPACITY  = 1;
 
-const RUN_RATE      = 8.0;   // phase radians per second
-const HIP_SWING     = 1.05;  // max hip rotation (rad)
-const KNEE_BEND     = 1.55;  // max knee bend (rad) — bends shin back on forward leg
-const ARM_SWING     = 0.70;  // max shoulder rotation (rad)
-const BODY_BOB      = 0.09;  // vertical bob amplitude (units)
+const RUN_RATE      = 8.0;
+const HIP_SWING     = 1.05;
+const KNEE_BEND     = 1.55;
+const ARM_SWING     = 0.70;
+const BODY_BOB      = 0.09;
+
+const ELECTRIC_COLORS = [0x00b4d8, 0x06d6a0, 0xe040fb] as const;
+const ELECTRIC_RATE   = 4.3;  // flicker speed
 
 export class Character {
   readonly object: THREE.Group;
 
-  // Animated pivot groups
   private hipL!:      THREE.Group;
   private hipR!:      THREE.Group;
   private kneeL!:     THREE.Group;
@@ -21,11 +23,16 @@ export class Character {
   private shoulderL!: THREE.Group;
   private shoulderR!: THREE.Group;
 
-  private runPhase = 0;
+  private runPhase          = 0;
+  private electricTime      = 0;
+  private electricMats: THREE.LineBasicMaterial[]    = [];
+  private electricOverlays: THREE.LineSegments[]     = [];
+  private electricBases:    THREE.Vector3[]          = [];
 
   constructor() {
     this.object = new THREE.Group();
     this.build();
+    this.buildElectricOverlay();
   }
 
   // ── Geometry helpers ────────────────────────────────────────────────────
@@ -94,10 +101,14 @@ export class Character {
     this.addGeo(o, new THREE.CylinderGeometry(0.07, 0.08, 0.15, 3, 1, true), 0, 2.325);
 
     // Torso — broad shoulders (top), pinched waist (bottom)
-    this.addGeo(o, new THREE.CylinderGeometry(0.44, 0.12, 0.75, 4, 1, true), 0, 1.875);
+    const torsoGeo = new THREE.CylinderGeometry(0.44, 0.12, 0.75, 4, 1, true);
+    torsoGeo.scale(1, 1, 0.45);
+    this.addGeo(o, torsoGeo, 0, 1.875);
 
     // Pelvis — flares from waist down to hip width
-    this.addGeo(o, new THREE.CylinderGeometry(0.12, 0.36, 0.22, 4, 1, true), 0, 1.39);
+    const pelvisGeo = new THREE.CylinderGeometry(0.12, 0.36, 0.22, 4, 1, true);
+    pelvisGeo.scale(1, 1, 0.45);
+    this.addGeo(o, pelvisGeo, 0, 1.39);
 
     // ── Arms (mirrored via side = ±1) ──────────────────────────────────
     for (const side of [-1, 1] as const) {
@@ -124,6 +135,36 @@ export class Character {
 
       if (side === -1) { this.hipL = hp; this.kneeL = kp; }
       else             { this.hipR = hp; this.kneeR = kp; }
+    }
+  }
+
+  // ── Electric overlay ────────────────────────────────────────────────────
+
+  private buildElectricOverlay() {
+    this.electricMats = ELECTRIC_COLORS.map(c =>
+      new THREE.LineBasicMaterial({
+        color: c, transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      })
+    );
+
+    // Collect every LineSegments in the character hierarchy
+    const segments: { obj: THREE.LineSegments; world: THREE.Object3D }[] = [];
+    this.object.traverse(child => {
+      if (child instanceof THREE.LineSegments) segments.push({ obj: child, world: child.parent! });
+    });
+
+    // For each color, clone all segments sharing the same geometry
+    for (const mat of this.electricMats) {
+      for (const { obj, world } of segments) {
+        const clone = new THREE.LineSegments(obj.geometry, mat);
+        clone.position.copy(obj.position);
+        clone.rotation.copy(obj.rotation);
+        clone.scale.copy(obj.scale);
+        world.add(clone);
+        this.electricOverlays.push(clone);
+        this.electricBases.push(obj.position.clone());
+      }
     }
   }
 
@@ -159,5 +200,27 @@ export class Character {
 
     // Subtle vertical bob — peaks at mid-stride
     this.object.position.y = Math.abs(Math.sin(this.runPhase * 2)) * BODY_BOB;
+
+    // Electric flicker
+    this.electricTime += dt * ELECTRIC_RATE;
+    const phase = Math.PI * 2 / 3;
+    for (let i = 0; i < this.electricMats.length; i++) {
+      const t = this.electricTime + i * phase;
+      // Sharp spike envelope: narrow bright pulses
+      const spike = Math.pow(Math.max(0, Math.sin(t)), 6) * 0.82
+                  + Math.pow(Math.max(0, Math.sin(t * 2.7 + 0.9)), 10) * 0.55;
+      this.electricMats[i].opacity = Math.min(1, spike);
+    }
+
+    // Jitter each overlay slightly so arcs appear to wander
+    for (let j = 0; j < this.electricOverlays.length; j++) {
+      const ov   = this.electricOverlays[j];
+      const base = this.electricBases[j];
+      ov.position.set(
+        base.x + (Math.random() - 0.5) * 0.030,
+        base.y + (Math.random() - 0.5) * 0.030,
+        base.z + (Math.random() - 0.5) * 0.030,
+      );
+    }
   }
 }
