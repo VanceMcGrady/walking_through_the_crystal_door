@@ -12,6 +12,7 @@ const terrain      = new Terrain(sceneManager.scene);
 const character    = new Character();
 const input        = new InputManager();
 const coordsEl     = document.getElementById('coords')!;
+const songtimeEl   = document.getElementById('songtime')!;
 const songClock    = new SongClock();
 
 sceneManager.scene.add(character.object);
@@ -28,7 +29,11 @@ function loop() {
   const now      = performance.now();
   const dt       = Math.min((now - lastTime) / 1000, 0.1);
   lastTime       = now;
-  const songTime = songClock.currentTime; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const songTime = songClock.currentTime;
+  const m  = Math.floor(songTime / 60);
+  const s  = Math.floor(songTime % 60);
+  const ms = Math.floor((songTime % 1) * 1000);
+  songtimeEl.textContent = `${m}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 
   const { movement } = input.read();
   character.move(movement.x, movement.y, dt);
