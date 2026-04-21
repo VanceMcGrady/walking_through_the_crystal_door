@@ -20,11 +20,24 @@
       }
       #coords   { top: 16px; }
       #songtime { top: 80px; }
+      #spotify-link {
+        position: fixed;
+        right: 20px;
+        top: 104px;
+        font-family: monospace;
+        font-size: 12px;
+        color: #18142a;
+        opacity: 0.6;
+        text-decoration: none;
+        line-height: 1.6;
+      }
+      #spotify-link:hover { opacity: 1; }
     </style>
   </head>
   <body>
     <div id="coords"></div>
     <div id="songtime"></div>
+    <a id="spotify-link" href="https://open.spotify.com/track/3AesHtI0i6T8fmr3IQXpX5?si=6e0030ee29a1417f" target="_blank" rel="noopener">spotify</a>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
