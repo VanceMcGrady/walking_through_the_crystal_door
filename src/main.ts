@@ -1,27 +1,51 @@
 import { SceneManager } from './scene/SceneManager';
+import { Terrain } from './scene/Terrain';
+import { Background } from './scene/Background';
 import { Character } from './character/Character';
 import { InputManager } from './input/InputManager';
+import { SongClock } from './audio/SongClock';
+import { StartScreen } from './ui/StartScreen';
 
 const sceneManager = new SceneManager();
-const character = new Character();
-const input = new InputManager();
+const background   = new Background(sceneManager.scene);
+const terrain      = new Terrain(sceneManager.scene);
+const character    = new Character();
+const input        = new InputManager();
+const coordsEl     = document.getElementById('coords')!;
+const songtimeEl   = document.getElementById('songtime')!;
+const songClock    = new SongClock();
 
 sceneManager.scene.add(character.object);
+
+new StartScreen(async () => {
+  await songClock.start();
+});
 
 let lastTime = performance.now();
 
 function loop() {
   requestAnimationFrame(loop);
 
-  const now = performance.now();
-  const dt = Math.min((now - lastTime) / 1000, 0.1);
-  lastTime = now;
+  const now      = performance.now();
+  const dt       = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime       = now;
+  const songTime = songClock.currentTime;
+  const m  = Math.floor(songTime / 60);
+  const s  = Math.floor(songTime % 60);
+  const ms = Math.floor((songTime % 1) * 1000);
+  songtimeEl.textContent = `${m}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 
   const { movement } = input.read();
   character.move(movement.x, movement.y, dt);
 
-  sceneManager.followTarget(character.object.position);
+  const pos = character.object.position;
+  background.update(pos.x, pos.z);
+  terrain.update(pos.x, pos.z);
+
+  sceneManager.followTarget(pos);
   sceneManager.render();
+
+  coordsEl.textContent = `x  ${pos.x.toFixed(1)}\ny  ${pos.y.toFixed(1)}\nz  ${pos.z.toFixed(1)}`;
 }
 
 loop();
