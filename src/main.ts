@@ -5,8 +5,9 @@ import { Background }     from './scene/Background';
 import { Character }      from './character/Character';
 import { InputManager }   from './input/InputManager';
 import { SongClock }      from './audio/SongClock';
-import { IntroDoor }      from './scene/IntroDoor';
-import { EventScheduler } from './timeline/EventScheduler';
+import { IntroDoor }        from './scene/IntroDoor';
+import { DealershipScene }  from './scene/DealershipScene';
+import { EventScheduler }   from './timeline/EventScheduler';
 import { HUDText }        from './ui/HUDText';
 import { CountdownBeep }  from './audio/CountdownBeep';
 import eventsData from '../assets/timelines/events.json';
@@ -26,9 +27,10 @@ const unlockAudio = () => { void Tone.start(); };
 window.addEventListener('keydown',     unlockAudio, { once: true });
 window.addEventListener('pointerdown', unlockAudio, { once: true });
 
-const hudText   = new HUDText();
-const beep      = new CountdownBeep();
-const scheduler = EventScheduler.fromJSON(eventsData.events);
+const hudText          = new HUDText();
+const beep             = new CountdownBeep();
+const scheduler        = EventScheduler.fromJSON(eventsData.events);
+const dealershipScene  = new DealershipScene(sceneManager.scene);
 
 // Movement starts enabled so player can walk to the door.
 // Entering the door freezes movement during the countdown,
@@ -49,6 +51,7 @@ sceneManager.scene.add(character.object);
 const introDoor = new IntroDoor(sceneManager.scene, () => {
   movementEnabled = false;
   songClock.startTransport();
+  dealershipScene.show();
 });
 
 let lastTime = performance.now();
