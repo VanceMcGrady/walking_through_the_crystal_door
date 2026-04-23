@@ -9,7 +9,7 @@ const BLDG_X        = 46;   // building center X from world origin
 const SCENE_START_Z = -22;  // Z where content begins (player approaches from +z)
 const SCENE_LENGTH  = 260;
 
-const DEALER_ZS     = [-45, -110, -175] as const;
+const DEALER_ZS     = [-45, -110] as const;
 const TARGET_BLDG_H = 13;
 const TARGET_CAR_H  = 1.9;
 
