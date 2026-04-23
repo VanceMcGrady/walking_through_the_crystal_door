@@ -1,4 +1,5 @@
-import * as Tone from 'tone';
+import * as THREE from 'three';
+import * as Tone  from 'tone';
 import { SceneManager }   from './scene/SceneManager';
 import { Terrain }        from './scene/Terrain';
 import { Background }     from './scene/Background';
@@ -8,6 +9,7 @@ import { SongClock }      from './audio/SongClock';
 import { IntroDoor }        from './scene/IntroDoor';
 import { DealershipScene }  from './scene/DealershipScene';
 import { MonsterManager }   from './scene/MonsterManager';
+import { CigarettePack }    from './scene/CigarettePack';
 import { EventScheduler }   from './timeline/EventScheduler';
 import { HUDText }        from './ui/HUDText';
 import { CountdownBeep }  from './audio/CountdownBeep';
@@ -33,6 +35,11 @@ const beep             = new CountdownBeep();
 const scheduler        = EventScheduler.fromJSON(eventsData.events);
 const dealershipScene  = new DealershipScene(sceneManager.scene);
 const monsterManager   = new MonsterManager(sceneManager.scene);
+const cigarettePack    = new CigarettePack(
+  sceneManager.scene,
+  new THREE.Vector3(5, 0, -55),
+  () => character.equipCigarette(),
+);
 
 // Movement starts enabled so player can walk to the door.
 // Entering the door freezes movement during the countdown,
@@ -44,7 +51,7 @@ scheduler
     const isFinal = event.data.label === 'ESCAPE THE WORLD';
     hudText.show(event.data.label);
     beep.play(isFinal);
-    if (isFinal) movementEnabled = true;
+    if (isFinal) { movementEnabled = true; cigarettePack.show(); }
   })
   .on('section_change', (event) => { console.log('[section]', event.data.section, event.data.preset); });
 
@@ -79,6 +86,7 @@ function loop() {
   character.move(mx, mz, dt);
 
   const pos = character.object.position;
+  cigarettePack.update(dt, pos);
   introDoor.update(pos, dt);
   monsterManager.update(dt, pos);
   background.update(pos.x, pos.z);

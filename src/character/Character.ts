@@ -22,6 +22,11 @@ export class Character {
   private kneeR!:     THREE.Group;
   private shoulderL!: THREE.Group;
   private shoulderR!: THREE.Group;
+  private elbowR!:    THREE.Group;
+
+  private emberLight: THREE.PointLight | null = null;
+  private emberMesh:  THREE.Mesh        | null = null;
+  private emberT = 0;
 
   private runPhase          = 0;
   private electricTime      = 0;
@@ -121,7 +126,7 @@ export class Character {
       this.addSeg(ep, side * 0.04, -0.42, 0.054, 0.038, 3); // lower arm
 
       if (side === -1) this.shoulderL = sp;
-      else             this.shoulderR = sp;
+      else           { this.shoulderR = sp; this.elbowR = ep; }
     }
 
     // ── Legs (mirrored via side = ±1) ──────────────────────────────────
@@ -168,6 +173,53 @@ export class Character {
     }
   }
 
+  // ── Equip cigarette ──────────────────────────────────────────────────────
+
+  equipCigarette(): void {
+    // Wrist group at the tip of the right lower arm
+    const wrist = new THREE.Group();
+    wrist.position.set(0.04, -0.42, 0);
+    this.elbowR.add(wrist);
+
+    const cig = new THREE.Group();
+    // rotation.x = -π/2 maps the cylinder's Y axis → -Z (character's forward)
+    cig.rotation.x = -Math.PI / 2;
+    // Shift so grip is near the hand and ember extends forward
+    cig.position.z = -0.20;
+    wrist.add(cig);
+
+    // Body — white paper tube
+    const bodyGeo = new THREE.CylinderGeometry(0.024, 0.024, 0.52, 7);
+    cig.add(new THREE.Mesh(bodyGeo, new THREE.MeshBasicMaterial({ color: 0xf2ede4 })));
+    cig.add(new THREE.LineSegments(
+      new THREE.EdgesGeometry(bodyGeo),
+      new THREE.LineBasicMaterial({ color: 0x888070 }),
+    ));
+
+    // Filter — tan/brown end (at +y = behind character)
+    const filterGeo = new THREE.CylinderGeometry(0.027, 0.027, 0.09, 7);
+    const filter    = new THREE.Mesh(filterGeo, new THREE.MeshBasicMaterial({ color: 0x9b7040 }));
+    filter.position.y = -0.305;
+    cig.add(filter);
+
+    // Ember — orange-red tip at -y (→ forward after rotation)
+    const emberGeo  = new THREE.SphereGeometry(0.034, 7, 5);
+    this.emberMesh  = new THREE.Mesh(emberGeo, new THREE.MeshBasicMaterial({ color: 0xff5500 }));
+    this.emberMesh.position.y = 0.28;
+    cig.add(this.emberMesh);
+
+    // Ash ring just behind ember
+    const ashGeo = new THREE.CylinderGeometry(0.026, 0.026, 0.03, 7);
+    const ash    = new THREE.Mesh(ashGeo, new THREE.MeshBasicMaterial({ color: 0xaaaaaa }));
+    ash.position.y = 0.245;
+    cig.add(ash);
+
+    // Ember light — flickering warm glow
+    this.emberLight          = new THREE.PointLight(0xff4400, 0.7, 2.2);
+    this.emberLight.position.y = 0.28;
+    cig.add(this.emberLight);
+  }
+
   // ── Per-frame update ─────────────────────────────────────────────────────
 
   move(dx: number, dz: number, dt: number) {
@@ -210,6 +262,16 @@ export class Character {
       const spike = Math.pow(Math.max(0, Math.sin(t)), 6) * 0.82
                   + Math.pow(Math.max(0, Math.sin(t * 2.7 + 0.9)), 10) * 0.55;
       this.electricMats[i].opacity = Math.min(1, spike);
+    }
+
+    // Ember flicker
+    if (this.emberLight && this.emberMesh) {
+      this.emberT += dt;
+      const flicker = 0.55 + Math.sin(this.emberT * 11.3) * 0.25 + Math.random() * 0.2;
+      this.emberLight.intensity = flicker;
+      (this.emberMesh.material as THREE.MeshBasicMaterial).color.setHSL(
+        0.06 - Math.random() * 0.03, 1, 0.52 + Math.random() * 0.12,
+      );
     }
 
     // Jitter each overlay slightly so arcs appear to wander
