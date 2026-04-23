@@ -7,6 +7,7 @@ import { InputManager }   from './input/InputManager';
 import { SongClock }      from './audio/SongClock';
 import { IntroDoor }        from './scene/IntroDoor';
 import { DealershipScene }  from './scene/DealershipScene';
+import { MonsterManager }   from './scene/MonsterManager';
 import { EventScheduler }   from './timeline/EventScheduler';
 import { HUDText }        from './ui/HUDText';
 import { CountdownBeep }  from './audio/CountdownBeep';
@@ -31,6 +32,7 @@ const hudText          = new HUDText();
 const beep             = new CountdownBeep();
 const scheduler        = EventScheduler.fromJSON(eventsData.events);
 const dealershipScene  = new DealershipScene(sceneManager.scene);
+const monsterManager   = new MonsterManager(sceneManager.scene);
 
 // Movement starts enabled so player can walk to the door.
 // Entering the door freezes movement during the countdown,
@@ -52,6 +54,7 @@ const introDoor = new IntroDoor(sceneManager.scene, () => {
   movementEnabled = false;
   songClock.startTransport();
   dealershipScene.show();
+  monsterManager.show();
 });
 
 let lastTime = performance.now();
@@ -77,6 +80,7 @@ function loop() {
 
   const pos = character.object.position;
   introDoor.update(pos, dt);
+  monsterManager.update(dt, pos);
   background.update(pos.x, pos.z);
   terrain.update(pos.x, pos.z);
 
