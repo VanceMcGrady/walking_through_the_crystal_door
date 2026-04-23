@@ -14,6 +14,10 @@ export class SongClock {
     Tone.getTransport().start();
   }
 
+  startTransport(): void {
+    Tone.getTransport().start();
+  }
+
   get currentTime(): number {
     return Tone.getTransport().seconds;
   }

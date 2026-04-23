@@ -1,15 +1,12 @@
 import * as THREE from 'three';
 
-// Camera sits behind and low; look target is aimed at chest height so the
-// horizon stays in frame regardless of where the character is on the plane.
 const CAMERA_OFFSET  = new THREE.Vector3(0, 4.5, 12);
 const LOOK_AT_OFFSET = new THREE.Vector3(0, 1.2, 0);
-const BG_COLOR = 0xf0ece0;
-const GROUND_LINE_COLOR = 0x9a8f82;
+const BG_COLOR       = 0xf0ece0;
 
 export class SceneManager {
-  readonly scene: THREE.Scene;
-  readonly camera: THREE.PerspectiveCamera;
+  readonly scene:    THREE.Scene;
+  readonly camera:   THREE.PerspectiveCamera;
   readonly renderer: THREE.WebGLRenderer;
 
   constructor() {
@@ -27,12 +24,12 @@ export class SceneManager {
     document.body.appendChild(this.renderer.domElement);
 
     this.addGround();
+    this.addLights();
 
     window.addEventListener('resize', this.onResize);
   }
 
   private addGround() {
-    // Large solid base — ensures no sky-colour gaps beyond the terrain mesh
     const base = new THREE.Mesh(
       new THREE.PlaneGeometry(2000, 2000),
       new THREE.MeshBasicMaterial({ color: BG_COLOR })
@@ -40,6 +37,13 @@ export class SceneManager {
     base.rotation.x = -Math.PI / 2;
     base.position.y = -0.02;
     this.scene.add(base);
+  }
+
+  private addLights() {
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const sun = new THREE.DirectionalLight(0xfff4e0, 1.2);
+    sun.position.set(5, 12, 8);
+    this.scene.add(sun);
   }
 
   private readonly _lookAt = new THREE.Vector3();

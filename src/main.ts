@@ -1,13 +1,14 @@
-import { SceneManager } from './scene/SceneManager';
-import { Terrain } from './scene/Terrain';
-import { Background } from './scene/Background';
-import { Character } from './character/Character';
-import { InputManager } from './input/InputManager';
-import { SongClock } from './audio/SongClock';
-import { StartScreen } from './ui/StartScreen';
+import * as Tone from 'tone';
+import { SceneManager }   from './scene/SceneManager';
+import { Terrain }        from './scene/Terrain';
+import { Background }     from './scene/Background';
+import { Character }      from './character/Character';
+import { InputManager }   from './input/InputManager';
+import { SongClock }      from './audio/SongClock';
+import { IntroDoor }      from './scene/IntroDoor';
 import { EventScheduler } from './timeline/EventScheduler';
-import { HUDText } from './ui/HUDText';
-import { CountdownBeep } from './audio/CountdownBeep';
+import { HUDText }        from './ui/HUDText';
+import { CountdownBeep }  from './audio/CountdownBeep';
 import eventsData from '../assets/timelines/events.json';
 
 const sceneManager = new SceneManager();
@@ -19,10 +20,20 @@ const coordsEl     = document.getElementById('coords')!;
 const songtimeEl   = document.getElementById('songtime')!;
 const songClock    = new SongClock();
 
-const hudText      = new HUDText();
-const beep         = new CountdownBeep();
-const scheduler    = EventScheduler.fromJSON(eventsData.events);
-let movementEnabled = false;
+// Unlock Web Audio context on first user interaction (browser requirement).
+// Both keyboard and pointer covered so mobile/desktop both work.
+const unlockAudio = () => { void Tone.start(); };
+window.addEventListener('keydown',     unlockAudio, { once: true });
+window.addEventListener('pointerdown', unlockAudio, { once: true });
+
+const hudText   = new HUDText();
+const beep      = new CountdownBeep();
+const scheduler = EventScheduler.fromJSON(eventsData.events);
+
+// Movement starts enabled so player can walk to the door.
+// Entering the door freezes movement during the countdown,
+// then "ESCAPE THE WORLD" releases it.
+let movementEnabled = true;
 
 scheduler
   .on('countdown', (event) => {
@@ -35,8 +46,9 @@ scheduler
 
 sceneManager.scene.add(character.object);
 
-new StartScreen(async () => {
-  await songClock.start();
+const introDoor = new IntroDoor(sceneManager.scene, () => {
+  movementEnabled = false;
+  songClock.startTransport();
 });
 
 let lastTime = performance.now();
@@ -61,6 +73,7 @@ function loop() {
   character.move(mx, mz, dt);
 
   const pos = character.object.position;
+  introDoor.update(pos, dt);
   background.update(pos.x, pos.z);
   terrain.update(pos.x, pos.z);
 
