@@ -5,6 +5,10 @@ import { Character } from './character/Character';
 import { InputManager } from './input/InputManager';
 import { SongClock } from './audio/SongClock';
 import { StartScreen } from './ui/StartScreen';
+import { EventScheduler } from './timeline/EventScheduler';
+import { HUDText } from './ui/HUDText';
+import { CountdownBeep } from './audio/CountdownBeep';
+import eventsData from '../assets/timelines/events.json';
 
 const sceneManager = new SceneManager();
 const background   = new Background(sceneManager.scene);
@@ -14,6 +18,20 @@ const input        = new InputManager();
 const coordsEl     = document.getElementById('coords')!;
 const songtimeEl   = document.getElementById('songtime')!;
 const songClock    = new SongClock();
+
+const hudText      = new HUDText();
+const beep         = new CountdownBeep();
+const scheduler    = EventScheduler.fromJSON(eventsData.events);
+let movementEnabled = false;
+
+scheduler
+  .on('countdown', (event) => {
+    const isFinal = event.data.label === 'ESCAPE THE WORLD';
+    hudText.show(event.data.label);
+    beep.play(isFinal);
+    if (isFinal) movementEnabled = true;
+  })
+  .on('section_change', (event) => { console.log('[section]', event.data.section, event.data.preset); });
 
 sceneManager.scene.add(character.object);
 
@@ -30,13 +48,17 @@ function loop() {
   const dt       = Math.min((now - lastTime) / 1000, 0.1);
   lastTime       = now;
   const songTime = songClock.currentTime;
+  scheduler.update(songTime);
+
   const m  = Math.floor(songTime / 60);
   const s  = Math.floor(songTime % 60);
   const ms = Math.floor((songTime % 1) * 1000);
   songtimeEl.textContent = `${m}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 
   const { movement } = input.read();
-  character.move(movement.x, movement.y, dt);
+  const mx = movementEnabled ? movement.x : 0;
+  const mz = movementEnabled ? movement.y : 0;
+  character.move(mx, mz, dt);
 
   const pos = character.object.position;
   background.update(pos.x, pos.z);

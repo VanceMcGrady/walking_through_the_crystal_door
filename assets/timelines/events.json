@@ -1,0 +1,8 @@
+{
+  "events": [
+    { "time": 0.05, "type": "countdown", "data": { "label": "3" } },
+    { "time": 1.05, "type": "countdown", "data": { "label": "2" } },
+    { "time": 2.05, "type": "countdown", "data": { "label": "1" } },
+    { "time": 3.05, "type": "countdown", "data": { "label": "ESCAPE THE WORLD" } }
+  ]
+}
