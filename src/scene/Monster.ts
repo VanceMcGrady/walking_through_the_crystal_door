@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const ARC_COUNT    = 8;   // lightning arcs per monster
+const ARC_COUNT    = 4;   // lightning arcs per monster
 const ARC_SEGS     = 9;   // points per arc (including start)
 const ARC_RADIUS   = 1.6; // how far arcs extend from center
 const GROUND_Y = 0.55; // sits just above the asphalt

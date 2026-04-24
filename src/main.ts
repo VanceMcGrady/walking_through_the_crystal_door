@@ -80,7 +80,8 @@ function loop() {
   const ms = Math.floor((songTime % 1) * 1000);
   songtimeEl.textContent = `${m}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 
-  const { movement } = input.read();
+  const { movement, interactJustPressed } = input.read();
+  if (interactJustPressed) character.startAttack();
   const mx = movementEnabled ? movement.x : 0;
   const mz = movementEnabled ? movement.y : 0;
   character.move(mx, mz, dt);

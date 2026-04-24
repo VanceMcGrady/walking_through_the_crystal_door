@@ -25,7 +25,6 @@ const SINGLE_CAR_PATHS = [
   '/assets/3D_models/suv_car.glb',
   '/assets/3D_models/dirty_car.glb',
   '/assets/3D_models/vandalized_car.glb',
-  '/assets/3D_models/destroyed_car_07_raw_scan.glb',
 ] as const;
 
 const PACK_PATHS = [
@@ -229,8 +228,8 @@ export class DealershipScene {
 
     for (const dz of DEALER_ZS) {
       for (const side of [-1, 1] as const) {
-        // 3 rows × 5 spots per dealership per side
-        for (let row = 0; row < 3; row++) {
+        // 1 row × 5 spots per dealership per side
+        for (let row = 0; row < 1; row++) {
           for (let col = 0; col < 5; col++) {
             const path = carPaths[idx % carPaths.length];
             idx++;
@@ -310,10 +309,6 @@ export class DealershipScene {
         head.position.set(poleX - side * 2, 7.1, z);
         this.group.add(head);
 
-        // Point light
-        const light = new THREE.PointLight(0xffd090, 1.2, 18);
-        light.position.set(poleX - side * 2, 7.0, z);
-        this.group.add(light);
       }
     }
   }

@@ -28,6 +28,10 @@ export class Character {
   private emberMesh:  THREE.Mesh        | null = null;
   private emberT = 0;
 
+  private attacking     = false;
+  private attackT       = 0;
+  private readonly ATTACK_DUR = 0.46;
+
   private runPhase          = 0;
   private electricTime      = 0;
   private electricMats: THREE.LineBasicMaterial[]    = [];
@@ -182,42 +186,62 @@ export class Character {
     this.elbowR.add(wrist);
 
     const cig = new THREE.Group();
-    // rotation.x = -π/2 maps the cylinder's Y axis → -Z (character's forward)
+    // rotation.x = -π/2 maps the cylinder's Y axis → -Z (character's forward = tip)
     cig.rotation.x = -Math.PI / 2;
-    // Shift so grip is near the hand and ember extends forward
-    cig.position.z = -0.20;
+    // Offset so the grip sits in the hand; blade extends forward
+    cig.position.z = -1.05;
     wrist.add(cig);
 
-    // Body — white paper tube
-    const bodyGeo = new THREE.CylinderGeometry(0.024, 0.024, 0.52, 7);
+    // ── Blade — long tapered white cylinder ──────────────────────────────
+    const bodyGeo = new THREE.CylinderGeometry(0.066, 0.040, 2.5, 8);
     cig.add(new THREE.Mesh(bodyGeo, new THREE.MeshBasicMaterial({ color: 0xf2ede4 })));
     cig.add(new THREE.LineSegments(
       new THREE.EdgesGeometry(bodyGeo),
       new THREE.LineBasicMaterial({ color: 0x888070 }),
     ));
 
-    // Filter — tan/brown end (at +y = behind character)
-    const filterGeo = new THREE.CylinderGeometry(0.027, 0.027, 0.09, 7);
-    const filter    = new THREE.Mesh(filterGeo, new THREE.MeshBasicMaterial({ color: 0x9b7040 }));
-    filter.position.y = -0.305;
-    cig.add(filter);
+    // ── Guard — flat disc at blade/grip junction ──────────────────────────
+    const guardGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.07, 10);
+    const guard    = new THREE.Mesh(guardGeo, new THREE.MeshBasicMaterial({ color: 0x7a5530 }));
+    guard.position.y = -1.12;
+    cig.add(guard);
+    const guardEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(guardGeo),
+      new THREE.LineBasicMaterial({ color: 0x3a2010 }),
+    );
+    guardEdges.position.y = -1.12;
+    cig.add(guardEdges);
 
-    // Ember — orange-red tip at -y (→ forward after rotation)
-    const emberGeo  = new THREE.SphereGeometry(0.034, 7, 5);
-    this.emberMesh  = new THREE.Mesh(emberGeo, new THREE.MeshBasicMaterial({ color: 0xff5500 }));
-    this.emberMesh.position.y = 0.28;
+    // ── Grip — thick tan cylinder ─────────────────────────────────────────
+    const gripGeo = new THREE.CylinderGeometry(0.095, 0.095, 0.30, 8);
+    const grip    = new THREE.Mesh(gripGeo, new THREE.MeshBasicMaterial({ color: 0x9b7040 }));
+    grip.position.y = -1.40;
+    cig.add(grip);
+
+    // ── Ember — orange-red glowing tip (at +y → forward) ─────────────────
+    const emberGeo = new THREE.SphereGeometry(0.10, 8, 6);
+    this.emberMesh = new THREE.Mesh(emberGeo, new THREE.MeshBasicMaterial({ color: 0xff5500 }));
+    this.emberMesh.position.y = 1.30;
     cig.add(this.emberMesh);
 
-    // Ash ring just behind ember
-    const ashGeo = new THREE.CylinderGeometry(0.026, 0.026, 0.03, 7);
-    const ash    = new THREE.Mesh(ashGeo, new THREE.MeshBasicMaterial({ color: 0xaaaaaa }));
-    ash.position.y = 0.245;
+    // Ash collar behind ember
+    const ashGeo = new THREE.CylinderGeometry(0.072, 0.072, 0.08, 8);
+    const ash    = new THREE.Mesh(ashGeo, new THREE.MeshBasicMaterial({ color: 0xbbbbbb }));
+    ash.position.y = 1.12;
     cig.add(ash);
 
-    // Ember light — flickering warm glow
-    this.emberLight          = new THREE.PointLight(0xff4400, 0.7, 2.2);
-    this.emberLight.position.y = 0.28;
+    // ── Ember light ───────────────────────────────────────────────────────
+    this.emberLight           = new THREE.PointLight(0xff4400, 1.0, 4.0);
+    this.emberLight.position.y = 1.30;
     cig.add(this.emberLight);
+  }
+
+  // ── Attack ───────────────────────────────────────────────────────────────
+
+  startAttack(): void {
+    if (!this.emberLight || this.attacking) return;
+    this.attacking = true;
+    this.attackT   = 0;
   }
 
   // ── Per-frame update ─────────────────────────────────────────────────────
@@ -248,7 +272,28 @@ export class Character {
 
     // Arm swing — contralateral (opposite to legs)
     this.shoulderL.rotation.x = -s * ARM_SWING;
-    this.shoulderR.rotation.x =  s * ARM_SWING;
+
+    if (this.attacking) {
+      this.attackT = Math.min(this.attackT + dt, this.ATTACK_DUR);
+      const p = this.attackT / this.ATTACK_DUR; // 0 → 1
+
+      // Wind up (0–0.28): arm pulls back to +1.9
+      // Slash  (0.28–0.68): quadratic ease-in swing through to −2.5 (fast acceleration)
+      // Recovery (0.68–1): return to rest
+      if (p < 0.28) {
+        this.shoulderR.rotation.x = (p / 0.28) * 1.9;
+      } else if (p < 0.68) {
+        const sp = (p - 0.28) / 0.40;
+        this.shoulderR.rotation.x = 1.9 - sp * sp * 4.4;
+      } else {
+        const rp = (p - 0.68) / 0.32;
+        this.shoulderR.rotation.x = -2.5 + rp * 2.5;
+      }
+
+      if (this.attackT >= this.ATTACK_DUR) this.attacking = false;
+    } else {
+      this.shoulderR.rotation.x = s * ARM_SWING;
+    }
 
     // Subtle vertical bob — peaks at mid-stride
     this.object.position.y = Math.abs(Math.sin(this.runPhase * 2)) * BODY_BOB;
